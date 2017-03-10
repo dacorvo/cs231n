@@ -85,7 +85,27 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  # Compute scores with a simple matrix multiplication
+  scores = X.dot(W)
+  # Extract correct scores using numpy indexing capabilities
+  # First vector imdicates the index for the first dimension (a range)
+  # second vector is the correct class index y
+  correct_scores = scores[np.arange(0,num_train),y]
+  # Calculate margin for each individual score. Note that we need to transpose
+  # the scores matrix to benefit from broadcast
+  margin = scores.T - correct_scores + 1
+  # Force margin to zero for correct classes (using y as indices)
+  margin[y,np.arange(0,num_train)] = 0
+  # We accumulate loss if margin is strictly positive
+  loss = np.sum(margin[margin > 0])
+
+  # Right now the loss is a sum over all training examples, but we want it
+  # to be an average instead so we divide by num_train.
+  loss /= num_train
+
+  # Add regularization to the loss.
+  loss += 0.5 * reg * np.sum(W * W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
