@@ -119,7 +119,21 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  # We will reuse the loss matrix we calculated before
+  # First, convert our margin matrix to a binary one
+  dL = (margin > 0).astype(int)
+  # We still use a transposed matrix (which is counter intuitive):
+  # In each datapoint column, the row that corresponds to the 'correct' class
+  # weights negatively as much as the sum of the 'wrong' classes weight
+  dL[y,np.arange(0,num_train)] = -1 * np.sum(dL, axis=0)
+  # The gradient is the result of the multiplication of the new matrix with the
+  # data matrix.
+  # Note that the result must be transposed back to match the gradient shape
+  dW = (dL.dot(X)).T
+  # Normalize the matrix
+  dW /= num_train
+  # Add regularization
+  dW += reg*W
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
