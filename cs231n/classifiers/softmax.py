@@ -99,7 +99,26 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  num_classes = W.shape[1]
+  # Obtain scores by a trivial matrix multiplication
+  scores = X.dot(W)
+  # Shift scores to avoid number overflows
+  shifted_scores = scores - np.max(scores)
+  # Convenince intermediate matrix with exponentials of each score
+  e_scores = np.exp(shifted_scores)
+  # We produce a vector with the summed score exponentials for each datapoint
+  sum_e_scores = np.sum(e_scores,axis=1)
+  # Loss is the sum for all datapoints of the log of summed score exponentials
+  # for that datapoint minus the correct class score for that datapoint
+  loss = np.sum(np.log(sum_e_scores) - shifted_scores[np.arange(0,num_train),y])
+  
+  # We want mean values
+  loss /= num_train
+
+  # Add regression
+  loss += 0.5 * reg * np.sum(W*W)
+  
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
