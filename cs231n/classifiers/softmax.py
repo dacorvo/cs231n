@@ -112,12 +112,25 @@ def softmax_loss_vectorized(W, X, y, reg):
   # Loss is the sum for all datapoints of the log of summed score exponentials
   # for that datapoint minus the correct class score for that datapoint
   loss = np.sum(np.log(sum_e_scores) - shifted_scores[np.arange(0,num_train),y])
-  
+ 
+  # The gradient is proportional to the data, so we prepare a matrix S of shape
+  # C,N to obtain the gradient at once
+  # Note that we use the exponential score matrix, transposed to benefit from
+  # broadcast when dividing by the summed exponential scores vector
+  S = e_scores.T[:,np.arange(0,num_train)]/sum_e_scores
+  # For correct classes, we add the negative factor
+  S[y,np.arange(0,num_train)] -= 1
+
+  # Calculate gradient
+  dW = np.dot(S,X).T
+
   # We want mean values
   loss /= num_train
+  dW /= num_train
 
   # Add regression
   loss += 0.5 * reg * np.sum(W*W)
+  dW += reg * W
   
   #############################################################################
   #                          END OF YOUR CODE                                 #
