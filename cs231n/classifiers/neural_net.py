@@ -65,7 +65,8 @@ class TwoLayerNet(object):
     # Unpack variables from the params dictionary
     W1, b1 = self.params['W1'], self.params['b1']
     W2, b2 = self.params['W2'], self.params['b2']
-    N, D = X.shape
+    N, D = X.shape  # N = datapoints , D = dimensions
+    H, C = W2.shape # H = hidden neurons, C = classes
 
     # Compute the forward pass
     scores = None
@@ -121,7 +122,55 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+
+    # The loss function is -log(exp(score)[y]/sum(exp(score))).
+    # Note: as a reminder, y is a constant that identifies the correct class for
+    # a given datapoint.
+    # In a first step of backward propagation, evaluate the derivative of the
+    # loss function according to the score matrix.
+    # As seen in previous calculations, the loss can be expressed as:
+    # L = log(sum(exp(score))) - score[y]
+
+    # let's calculate the 'score' gradient dscore term by term
+    # dscore is a N x C matrix:
+    # - a line for each datapoint,
+    # - a column for each class
+
+    # For each class j, the derivative of log(sum(exp(score)) is the derivative
+    # of sum(exp(score)) divided by sum((exp(score))). Since only the term of
+    # the sum corresponding to the j class depends on this class, this is
+    # actually the derivative of exp(score[j]) (== exp(score[j])), divided by
+    # the global sum.
+    # Note that we need to transpose the e_score matrix to use broadcast on the
+    # division (it works only on lines).
+    dscore = (e_scores.T[:,np.arange(0,N)]/s_e_scores).T
+    # For each class j, the derivative of the second term score[y] is:
+    # - 1 if j is the correct class,
+    # - 0 otherwise.
+    # We therefore substract one to each datapoint gradient at the index of the
+    # correct class
+    dscore[np.arange(0,N),y] -= 1
+    # Note: dscore_t is the transposed score gradient of dimension C x H
+
+    # score = H1.W2 + b2, where:
+    # - H1 (N x H) is the result matrix of the first stage (datapoints scores
+    # for each hidden neuron)
+    # - W2 (H x C) is the hidden neurons weight matrix
+    # - b2 (C) is the bias vector, broadcasted N times
+    # We can deduce the gradients for W2 and b2 by propagating the 'score'
+    # gradient
+
+    # dW2 = H1 * dscore
+    grads['W2'] = H1.T.dot(dscore)
+    # Get mean value
+    grads['W2'] /= N
+    # Add regression
+    grads['W2'] += reg * W2
+
+    # db2 = 1 * dscore
+    grads['b2'] = np.sum(dscore, axis=0)
+    grads['b2'] /= N
+
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
