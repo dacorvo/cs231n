@@ -97,7 +97,19 @@ class TwoLayerNet(object):
     # classifier loss. So that your results match ours, multiply the            #
     # regularization loss by 0.5                                                #
     #############################################################################
-    pass
+    # Calculate intermediate matrix with score exponentials
+    e_scores = np.exp(scores)
+    # From there deduce a vector of summed exponentials
+    s_e_scores = np.sum(e_scores, axis=1)
+    # Loss is the sum for each datapoint of the summed exponentials ...
+    loss = np.sum(np.log(s_e_scores))
+    # Minus the score of each correct class
+    loss -= np.sum(scores[np.arange(0, N),y])
+    # We want a mean value
+    loss /= N
+
+    # Add regression
+    loss += 0.5 * reg * np.sum(W1*W1) + 0.5 * reg * np.sum(W2*W2)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
