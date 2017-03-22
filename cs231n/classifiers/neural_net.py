@@ -98,14 +98,16 @@ class TwoLayerNet(object):
     # classifier loss. So that your results match ours, multiply the            #
     # regularization loss by 0.5                                                #
     #############################################################################
+    # Minimize risks of overflows by substracting the max value
+    w_scores = scores - np.amax(scores)
     # Calculate intermediate matrix with score exponentials
-    e_scores = np.exp(scores)
+    e_scores = np.exp(w_scores)
     # From there deduce a vector of summed exponentials
     s_e_scores = np.sum(e_scores, axis=1)
     # Loss is the sum for each datapoint of the summed exponentials ...
     loss = np.sum(np.log(s_e_scores))
     # Minus the score of each correct class
-    loss -= np.sum(scores[np.arange(0, N),y])
+    loss -= np.sum(w_scores[np.arange(0, N),y])
     # We want a mean value
     loss /= N
 
