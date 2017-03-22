@@ -171,6 +171,24 @@ class TwoLayerNet(object):
     grads['b2'] = np.sum(dscore, axis=0)
     grads['b2'] /= N
 
+    # We need this intermediate gradient for propagation
+    dH1 = dscore.dot(W2.T)
+
+    # H1 = max (0,S1)
+    # The derivative is all ones, except when H1 < 0, multiplied by the
+    # downstream gradient. This is equivalent to assigning the matrix, then
+    # clamping negative values to zero
+    dS1 = dH1
+    dS1[ S1 < 0] = 0
+
+    # S1 = X.W1 + b1
+    grads['W1'] = X.T.dot(dS1)
+    grads['W1'] /= N
+    grads['W1'] += reg * W1
+
+    grads['b1'] = np.sum(dS1, axis=0)
+    grads['b1'] /= N
+
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
