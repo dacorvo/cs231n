@@ -1,4 +1,4 @@
-import cPickle as pickle
+import pickle
 import numpy as np
 import os
 from scipy.misc import imread
