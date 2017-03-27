@@ -110,7 +110,9 @@ def relu_backward(dout, cache):
   #############################################################################
   # TODO: Implement the ReLU backward pass.                                   #
   #############################################################################
-  pass
+  # A bit convoluted, but takes fill advantage of numpy
+  dx = np.where( x >= 0, dout, 0)
+  # ie dx is equal to dout whenever x is positive
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
