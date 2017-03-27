@@ -57,7 +57,14 @@ def affine_backward(dout, cache):
   #############################################################################
   # TODO: Implement the affine backward pass.                                 #
   #############################################################################
-  pass
+  # out = X.W + b, hence dX = dout.w, dw = X.dout, db = dout * 1(N)
+  dX = np.dot(dout,w.T)
+  # Reshape dX to obtain dx
+  dx = dX.reshape(x.shape)
+  # Conversely, we need to reshape x to obtain dW
+  dw = np.dot(x.reshape(dX.shape).T, dout)
+  # This one is easy
+  db = np.dot(dout.T,np.ones(x.shape[0]))
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
