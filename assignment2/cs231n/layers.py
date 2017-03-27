@@ -24,7 +24,12 @@ def affine_forward(x, w, b):
   # TODO: Implement the affine forward pass. Store the result in out. You     #
   # will need to reshape the input into rows.                                 #
   #############################################################################
-  pass
+  # Reshape the matrix, letting numpy figure out what is the size of the newly
+  # aggregated dimension D by passing it -1
+  X = np.reshape(x,(x.shape[0],-1))
+  # Just apply weight using matrix multiplication, then broadcast bias on each
+  # line
+  out = np.dot(X, w) + b
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
