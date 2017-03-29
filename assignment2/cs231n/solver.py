@@ -113,7 +113,7 @@ class Solver(object):
     self.batch_size = kwargs.pop('batch_size', 100)
     self.num_epochs = kwargs.pop('num_epochs', 10)
 
-    self.print_every = kwargs.pop('print_every', 10)
+    self.print_every = kwargs.pop('print_every', -1)
     self.verbose = kwargs.pop('verbose', True)
 
     # Throw an error if there are extra keyword arguments
@@ -227,7 +227,7 @@ class Solver(object):
       self._step()
 
       # Maybe print training loss
-      if self.verbose and t % self.print_every == 0:
+      if self.verbose and self.print_every != -1 and t % self.print_every == 0:
         print('(Iteration %d / %d) loss: %f' % (
                t + 1, num_iterations, self.loss_history[-1]))
 
