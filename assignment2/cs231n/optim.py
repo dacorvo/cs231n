@@ -102,7 +102,13 @@ def rmsprop(x, dx, config=None):
   # in the next_x variable. Don't forget to update cache value stored in      #  
   # config['cache'].                                                          #
   #############################################################################
-  pass
+  learning_rate = config.get("learning_rate")
+  decay_rate = config.get("decay_rate")
+  eps = config.get("epsilon")
+  cache = config.get("cache")
+  cache = decay_rate * cache + (1 - decay_rate) * dx**2
+  next_x = x - learning_rate * dx / (np.sqrt(cache) + eps)
+  config['cache'] = cache
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
