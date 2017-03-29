@@ -145,7 +145,30 @@ def adam(x, dx, config=None):
   # the next_x variable. Don't forget to update the m, v, and t variables     #
   # stored in config.                                                         #
   #############################################################################
-  pass
+  # Get configuration values
+  learning_rate = config.get("learning_rate")
+  beta1 = config.get("beta1")
+  beta2 = config.get("beta2")
+  eps = config.get("epsilon")
+  # Get parameters
+  m = config.get("m")
+  v = config.get("v")
+  t = config.get("t")
+  # Increment t
+  t += 1
+  # Evaluate momentum
+  m = beta1*m + (1-beta1)*dx
+  # Evaluate velocity
+  v = beta2*v + (1-beta2)*(dx**2)
+  # Apply multipliers before applying momentum and velocity to x
+  # The multipliers decrease over time with t (0 < betas < 1)
+  mt = m / (1 - beta1**t)
+  vt = v / (1 - beta2**t)
+  next_x = x - learning_rate * mt / (np.sqrt(vt) + eps)
+  # Store modified parameters
+  config["m"] = m
+  config["v"] = v
+  config["t"] = t
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
