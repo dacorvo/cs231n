@@ -185,12 +185,16 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # Evaluate sample variance (note: broadcast on - )
     sample_var = np.mean(np.square(x - sample_mean), axis=0)
     # Normalize the input (note: triple broadcast on - , +, then /)
-    xn = (x - sample_mean)/(np.sqrt(sample_var + eps))
+    num = x - sample_mean
+    den = np.sqrt(sample_var + eps)
+    xn = num/den
     # And scale to produce the output (note: broadcast on +)
     out = xn * gamma + beta
     # Update running mean and variance
     running_mean = momentum * running_mean + (1 - momentum) * sample_mean
     running_var = momentum * running_var + (1 - momentum) * sample_var
+    # Set cache values
+    cache = gamma, beta, eps, x, xn, sample_mean, sample_var, num, den
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -240,7 +244,38 @@ def batchnorm_backward(dout, cache):
   # TODO: Implement the backward pass for batch normalization. Store the      #
   # results in the dx, dgamma, and dbeta variables.                           #
   #############################################################################
-  pass
+  gamma, beta, eps, x, xn, smean, svar, num, den = cache
+  # out = gamma*xn + beta
+  dxn = dout * gamma # Note the broadcast on *
+  # Gamma and beta are actually matrix obtained by the replication of the
+  # vectors along the first axis, so for the vector derivative, we need to sum
+  # the value of all lines
+  dgamma = np.sum(dout * xn, axis=0) # broadcast forward means sum backward
+  dbeta = np.sum(dout, axis=0) # broadcast forward means sum backward
+  # We now need to propagate dxn
+  invden = 1.0/den
+  # Evaluate first numerator gradient from dxn
+  dnum = dxn * invden # Note the broadcast here
+  # Initialize dsmean and dx with dnum contribution
+  dx = 1.0 * dnum
+  dsmean = -1.0 * np.sum(dnum, axis=0) # broadcast forward means sum backward
+  # Evaluate inverted denominator gradient from dxn
+  dinvden = np.sum(dxn * num, axis=0) # broadcast forward means sum backward
+  # And now the actual denominator gradient
+  dden = (-1.0 / np.square(den)) * dinvden # no dimension change here
+  # Propagate dden on d(svar+eps). Note that we can reuse den as d(sqrt) is
+  # 0.5/sqrt
+  dsvareps = (0.5 / den) * dden # no dimension change here
+  # dsvar is actually dssvareps
+  dsvar = dsvareps
+  # We must now evaluate the dsvar contribution to dx and dsmean
+  # broadcast forward means sum backward, and dividing by N is actually mean
+  dsmean += 2.0 * dsvar * np.mean(x - smean, axis=0)
+  # No dimension change for dx
+  dx += 2.0 * dsvar * (x - smean)/x.shape[0]
+  # Finally we can propagate dsmean contribution on dx, expanded on all rows
+  dx += np.ones(x.shape) * dsmean/x.shape[0]
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
