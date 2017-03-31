@@ -186,6 +186,11 @@ class FullyConnectedNet(object):
         dim2 = hidden_dims[i - 1] if i < self.num_layers else num_classes
         self.params[wname] = np.random.randn(dim1, dim2) * weight_scale
         self.params[bname] = np.zeros(dim2)
+        if self.use_batchnorm and i < self.num_layers:
+            gammaname = 'gamma%d' % i
+            betaname = 'beta%d' % i
+            self.params[gammaname] = np.ones(dim2)
+            self.params[betaname] = np.zeros(dim2)
         dim1 = dim2
 
     ############################################################################
@@ -250,14 +255,24 @@ class FullyConnectedNet(object):
     for i in range(1, self.num_layers + 1):
         wname = 'W%d' % i
         bname = 'b%d' % i
+        gammaname = 'gamma%d' % i
+        betaname = 'beta%d' % i
         if i == self.num_layers:
             H, cache = affine_forward(H,
                                       self.params[wname],
                                       self.params[bname])
         else:
-            H, cache = affine_relu_forward(H,
-                                           self.params[wname],
-                                           self.params[bname])
+            if self.use_batchnorm:
+                H, cache = affine_bnorm_relu_forward(H,
+                                                     self.params[wname],
+                                                     self.params[bname],
+                                                     self.params[gammaname],
+                                                     self.params[betaname],
+                                                     self.bn_params[i-1])
+            else:
+                H, cache = affine_relu_forward(H,
+                                               self.params[wname],
+                                               self.params[bname])
         caches.append(cache)
     scores = H
 
@@ -288,11 +303,19 @@ class FullyConnectedNet(object):
     for i in range(self.num_layers, 0, -1):
         wname = 'W%d' % i
         bname = 'b%d' % i
+        gammaname = 'gamma%d' % i
+        betaname = 'beta%d' % i
         # Calculate gradient
         if i == self.num_layers:
             dH, dw, db = affine_backward(dH, caches[i - 1])
         else:
-            dH, dw, db = affine_relu_backward(dH, (caches[i - 1]))
+            if self.use_batchnorm:
+                dH, dw, db, dgamma, dbeta = \
+                    affine_bnorm_relu_backward(dH, (caches[i -1]))
+                grads[gammaname] = dgamma
+                grads[betaname] = dbeta
+            else:
+                dH, dw, db = affine_relu_backward(dH, (caches[i - 1]))
         grads[wname] = dw
         grads[bname] = db
         # Add regularization loss for this weight matrix
