@@ -273,6 +273,9 @@ class FullyConnectedNet(object):
                 H, cache = affine_relu_forward(H,
                                                self.params[wname],
                                                self.params[bname])
+            if self.use_dropout:
+                H, dp_cache = dropout_forward(H, self.dropout_param)
+                cache = (cache, dp_cache)
         caches.append(cache)
     scores = H
 
@@ -309,13 +312,18 @@ class FullyConnectedNet(object):
         if i == self.num_layers:
             dH, dw, db = affine_backward(dH, caches[i - 1])
         else:
+            if self.use_dropout:
+                cache, dp_cache = caches[i -1]
+                dH = dropout_backward(dH, dp_cache)
+            else:
+                cache = caches[i -1]
             if self.use_batchnorm:
                 dH, dw, db, dgamma, dbeta = \
-                    affine_bnorm_relu_backward(dH, (caches[i -1]))
+                    affine_bnorm_relu_backward(dH, (cache))
                 grads[gammaname] = dgamma
                 grads[betaname] = dbeta
             else:
-                dH, dw, db = affine_relu_backward(dH, (caches[i - 1]))
+                dH, dw, db = affine_relu_backward(dH, (cache))
         grads[wname] = dw
         grads[bname] = db
         # Add regularization loss for this weight matrix
