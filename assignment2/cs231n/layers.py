@@ -483,7 +483,68 @@ def conv_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
-  pass
+  # Retrieve cache
+  x, w, b, conv_param = cache
+  # Convenience dimension variables
+  N, C, H, W = x.shape
+  F, C, HH, WW = w.shape
+  # Special dimension used for reshaped matrices multiplication
+  D = C*HH*WW
+  # Extract stride and pad
+  stride = conv_param.get("stride",1)
+  pad = conv_param.get("pad",0)
+
+  # First, add zero padding along height and width axis
+  padding = ( (0,), (0,), (pad,), (pad,) )
+  x_padded = np.pad(x,padding,'constant')
+  
+  # Evaluate number of operations along the height axis
+  H1 = int(1 + (H + 2 * pad - HH) / stride)
+  # Evaluate number of operations along the width axis
+  W1 = int(1 + (W + 2 * pad - WW) / stride)
+  
+  # We need a (D, F) reshaped filter matrix to perform matrix multiplication
+  wr = w.reshape(F, D)
+
+  # Initialize gradients
+  # Note that we will get dw from the reshaped dwr
+  dx_padded = np.zeros(x_padded.shape)
+  dwr = np.zeros(wr.shape)
+  db = np.zeros(b.shape)
+  
+  # Iterate along height and width to evaluate gradients
+  for i in range(H1):
+      for j in range(W1):
+          # Isolate the subset of the output gradient that corresponds to this
+          # kernel operation
+          dO = dout[:,:,i,j]
+
+          # It contributes to the gradient of only the subset of the input image
+          # we applied the kernel on
+          xij = x_padded[:,:, stride*i:stride*i + HH , stride*j:stride*j + WW]
+          # Reshape the subset to use matrix multiplication
+          xij = xij.reshape(N, D)
+
+          # Calculate output gradient contributions to dxij, dwr, db
+
+          # dxij = dout x wr
+          dxij = np.dot(dO,wr)
+          # Reshape to recover initial dimensions
+          dxij = dxij.reshape(N, C, HH, WW)
+          # Now apply this contribution to dx subset
+          dx_padded[:,:, stride*i:stride*i+HH, stride*j:stride*j+WW] += dxij
+          
+          # dwr += dout.T x xij
+          dwr += np.dot(dO.T,xij)
+          
+          # db += dout.T x 1(N) 
+          db += np.dot(dO.T,np.ones(N))
+  
+  # Remove padding to obtain dx
+  dx = dx_padded[:,:,pad:H+pad,pad:W+pad]
+  
+  # Reshape dwr to obtain dw
+  dw = dwr.reshape(F, C, HH, WW)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
