@@ -425,7 +425,40 @@ def conv_forward_naive(x, w, b, conv_param):
   # TODO: Implement the convolutional forward pass.                           #
   # Hint: you can use the function np.pad for padding.                        #
   #############################################################################
-  pass
+  
+  # Convenience variables to hold dimension values
+  N, C, H, W = x.shape
+  F, C, HH, WW = w.shape
+  # Special dimension used for reshaped matrices multiplication
+  D = C*HH*WW
+  # Extract stride and pad
+  stride = conv_param.get("stride",1)
+  pad = conv_param.get("pad",0)
+
+  # First, add zero padding along height and width axis
+  padding = ( (0,), (0,), (pad,), (pad,) )
+  x_padded = np.pad(x,padding,'constant')
+  
+  # Evaluate number of operations along the height axis
+  H1 = int(1 + (H + 2 * pad - HH) / stride)
+  # Evaluate number of operations along the width axis
+  W1 = int(1 + (W + 2 * pad - WW) / stride)
+  # Create out matrix
+  out = np.zeros((N, F, H1, W1))
+  
+  # We need a (D, F) reshaped filter matrix to perform matrix multiplication
+  wr = w.reshape(F, D).T
+  
+  # Iterate along height and width to apply kernels
+  for i in range(H1):
+      for j in range(W1):
+          # Isolate the subset of the image we apply the kernel on
+          xij = x_padded[:,:, stride*i:stride*i + HH , stride*j:stride*j + WW]
+          # Reshape the subset to use matrix multiplication
+          xij = xij.reshape(N, D)
+          # Multiply by reshaped filter and add bias to calculate output
+          out[:,:,i,j] = np.dot(xij,wr) + b
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
