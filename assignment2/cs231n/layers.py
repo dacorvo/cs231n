@@ -676,7 +676,13 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
   # version of batch normalization defined above. Your implementation should  #
   # be very short; ours is less than five lines.                              #
   #############################################################################
-  pass
+  N, C, H, W = x.shape
+  # Put C dimension at the end then reshape the input
+  rx = x.transpose(0, 2, 3, 1).reshape(N*H*W, C)
+  # Apply vanilla batch normalization
+  rout, cache = batchnorm_forward(rx, gamma, beta, bn_param)
+  # Reshape the output and restore initial order of dimensions
+  out = rout.reshape(N, H, W, C).transpose(0, 3, 1, 2)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
