@@ -18,7 +18,7 @@ class ThreeLayerConvNet(object):
   
   def __init__(self, input_dim=(3, 32, 32), num_filters=32, filter_size=7,
                hidden_dim=100, num_classes=10, weight_scale=1e-3, reg=0.0,
-               dtype=np.float32):
+               dtype=np.float32,use_batchnorm=False):
     """
     Initialize a new network.
     
@@ -51,13 +51,22 @@ class ThreeLayerConvNet(object):
     F = filter_size
     self.params['W1'] = np.random.randn(num_filters, C, F, F) * weight_scale
     self.params['b1'] = np.zeros(num_filters)
+    # Evaluate the dimension D of the flattened conv output
     # Let's assume the conv layer preserves the input, that is later divided by
     # 2 along each dimension by the pool layer
-    self.params['W2'] = \
-        np.random.randn(int(num_filters * H * W /4), hidden_dim) * weight_scale
+    D = int(num_filters * H * W /4)
+    self.params['W2'] = np.random.randn(D, hidden_dim) * weight_scale
     self.params['b2'] = np.zeros(hidden_dim)
     self.params['W3'] = np.random.randn(hidden_dim, num_classes) * weight_scale
     self.params['b3'] = np.zeros(num_classes)
+    self.use_batchnorm = use_batchnorm
+    if self.use_batchnorm:
+        self.params['gamma1'] = np.ones(num_filters)
+        self.params['beta1'] = np.zeros(num_filters)
+        self.params['gamma2'] = np.ones(hidden_dim)
+        self.params['beta2'] = np.zeros(hidden_dim)
+        self.bn_params = [{'mode': 'test' },{'mode': 'test'}]
+
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -89,8 +98,24 @@ class ThreeLayerConvNet(object):
     # computing the class scores for X and storing them in the scores          #
     # variable.                                                                #
     ############################################################################
-    conv, convcache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
-    hidden, hcache = affine_relu_forward(conv, W2, b2)
+    if self.use_batchnorm:
+        mode = 'test' if y is None else 'train'
+        for bn_param in self.bn_params:
+            bn_param['mode'] = mode
+        conv, convcache = conv_bnorm_relu_pool_forward(X, W1, b1,
+                                                       self.params["gamma1"],
+                                                       self.params["beta1"],
+                                                       conv_param,
+                                                       pool_param,
+                                                       self.bn_params[0])
+        hidden, hcache = affine_bnorm_relu_forward(conv, W2, b2,
+                                                  self.params["gamma2"],
+                                                  self.params["beta2"],
+                                                  self.bn_params[1])
+    else:
+        conv, convcache = conv_relu_pool_forward(X, W1, b1,
+                                                 conv_param, pool_param)
+        hidden, hcache = affine_relu_forward(conv, W2, b2)
     scores, fcache = affine_forward(hidden, W3, b3)
     ############################################################################
     #                             END OF YOUR CODE                             #
@@ -114,9 +139,16 @@ class ThreeLayerConvNet(object):
     # Calculate third layer gradients
     dl3, grads['W3'], grads['b3'] = affine_backward(dout, fcache)
     # Calculate second layer gradients
-    dl2, grads['W2'], grads['b2'] = affine_relu_backward(dl3, hcache)
-    # Calculate conv layer gradients
-    dX, grads['W1'], grads['b1'] = conv_relu_pool_backward(dl2, convcache)
+    if self.use_batchnorm:
+        dl2, grads['W2'], grads['b2'], grads['gamma2'], grads['beta2'] = \
+                affine_bnorm_relu_backward(dl3, hcache)
+        # Calculate conv layer gradients
+        dX, grads['W1'], grads['b1'], grads['gamma1'], grads['beta1'] = \
+                conv_bnorm_relu_pool_backward(dl2, convcache)
+    else:
+        dl2, grads['W2'], grads['b2'] = affine_relu_backward(dl3, hcache)
+        # Calculate conv layer gradients
+        dX, grads['W1'], grads['b1'] = conv_relu_pool_backward(dl2, convcache)
     # Add regularization for each gradient
     grads['W1'] += self.reg * self.params['W1']
     grads['W2'] += self.reg * self.params['W2']
