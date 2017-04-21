@@ -1,7 +1,7 @@
 import numpy as np
 
 from cs231n import optim
-
+from time import time
 
 class Solver(object):
   """
@@ -219,6 +219,7 @@ class Solver(object):
     """
     Run optimization to train the model.
     """
+    t0 = time()
     num_train = self.X_train.shape[0]
     iterations_per_epoch = max(num_train / self.batch_size, 1)
     num_iterations = int(self.num_epochs * iterations_per_epoch)
@@ -263,4 +264,7 @@ class Solver(object):
 
     # At the end of training swap the best params into the model
     self.model.params = self.best_params
+
+    t1 = time()
+    print("Training took %f s" % (t1 -t0))
 
