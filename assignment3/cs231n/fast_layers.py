@@ -3,9 +3,9 @@ try:
   from cs231n.im2col_cython import col2im_cython, im2col_cython
   from cs231n.im2col_cython import col2im_6d_cython
 except ImportError:
-  print 'run the following from the cs231n directory and try again:'
-  print 'python setup.py build_ext --inplace'
-  print 'You may also need to restart your iPython kernel'
+  print('run the following from the cs231n directory and try again:')
+  print('python setup.py build_ext --inplace')
+  print('You may also need to restart your iPython kernel')
 
 from cs231n.im2col import *
 
@@ -53,10 +53,10 @@ def conv_forward_strides(x, w, b, conv_param):
   x_padded = np.pad(x, ((0, 0), (0, 0), (p, p), (p, p)), mode='constant')
   
   # Figure out output dimensions
-  H += 2 * pad
-  W += 2 * pad
-  out_h = (H - HH) / stride + 1
-  out_w = (W - WW) / stride + 1
+  H += int(2 * pad)
+  W += int(2 * pad)
+  out_h = int((H - HH) / stride + 1)
+  out_w = int((W - WW) / stride + 1)
 
   # Perform an im2col operation by picking clever strides
   shape = (C, HH, WW, N, out_h, out_w)
@@ -182,8 +182,8 @@ def max_pool_forward_reshape(x, pool_param):
   assert pool_height == pool_width == stride, 'Invalid pool params'
   assert H % pool_height == 0
   assert W % pool_height == 0
-  x_reshaped = x.reshape(N, C, H / pool_height, pool_height,
-                         W / pool_width, pool_width)
+  x_reshaped = x.reshape(N, C, int(H / pool_height), pool_height,
+                         int(W / pool_width), pool_width)
   out = x_reshaped.max(axis=3).max(axis=4)
 
   cache = (x, x_reshaped, out)
