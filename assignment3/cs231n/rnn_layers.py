@@ -135,7 +135,30 @@ def rnn_backward(dh, cache):
   # sequence of data. You should use the rnn_step_backward function that you   #
   # defined above.                                                             #
   ##############################################################################
-  pass
+  N, T, H = dh.shape
+  # Get the input dimension D from the cache
+  _, _, x0, _, _ = cache[0]
+  D = x0.shape[1]
+  # Initialize gradients
+  dx = np.zeros((N, T, D))
+  dh0 = np.zeros((N, H))
+  dWx = np.zeros((D, H))
+  dWh = np.zeros((H, H))
+  db = np.zeros(H)
+  # Initialize previous state transition gradient to zero
+  dprev_h = np.zeros((N,H))
+  # Iterate backward over the sequence to backpropagate state transitions
+  # gradients. At each step, we also integrate the gradient relative to the 
+  # classification loss function stored in dh
+  for t in range(T-1,-1,-1):
+      # Actual gradient is the sum of the loss and state gradients
+      dh_full = dh[:,t,:] + dprev_h
+      dx[:,t,:], dprev_h, dWx_t, dWh_t, db_t = \
+              rnn_step_backward(dh_full, cache[t])
+      dWx += dWx_t
+      dWh += dWh_t
+      db  += db_t
+  dh0 = dprev_h
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
