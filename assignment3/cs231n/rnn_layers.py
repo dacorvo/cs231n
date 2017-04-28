@@ -217,7 +217,22 @@ def word_embedding_backward(dout, cache):
   #                                                                            #
   # HINT: Look up the function np.add.at                                       #
   ##############################################################################
-  pass
+  x, W = cache
+  dW = np.zeros_like(W)
+  # We need to figure out which gradient goes to which vector in the original
+  # W matrix. For that, we need the initial information of which x index was
+  # mapped to each vector.
+  # We therefore go once again through the indices stored in x and extract the
+  # corresponding dout vector of dimension D to add it to the W vector at the
+  # index specified by x.
+  # N, T = x.shape
+  # for i in range(N):
+  #   for j in range(T):
+  #     dW[x[i,j]] += dout[i,j]
+  # Using the .at function, we are able to write it in a compact way, using:
+  #  - the value in x to identify the target dW vector,
+  #  - the index in x to identify the source dout vector
+  np.add.at(dW, x, dout)
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
