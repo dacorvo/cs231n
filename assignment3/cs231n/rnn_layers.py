@@ -186,7 +186,10 @@ def word_embedding_forward(x, W):
   #                                                                            #
   # HINT: This should be very simple.                                          #
   ##############################################################################
-  pass
+  # Very compact way of saying: for each index in x, pick the W vector that
+  # corresponds to the specified value and insert it at this index
+  out = W[x,:]
+  cache = x, W
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
