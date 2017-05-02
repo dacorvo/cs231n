@@ -217,7 +217,26 @@ class CaptioningRNN(object):
     # functions; you'll need to call rnn_step_forward or lstm_step_forward in #
     # a loop.                                                                 #
     ###########################################################################
-    pass
+    # Evaluate RNN initial state
+    h, _ = affine_forward(features, W_proj, b_proj)
+    # For each image, initial word is the <START> token
+    words = np.ones((N), dtype=np.int32) * self._start
+    # Set counter to zero
+    t = 0
+    # Iterate until we reach max length
+    while t < max_length:
+        # Convert current words (one per image) to a vector
+        words_vect, _ = word_embedding_forward(words, W_embed)
+        # Evaluate RNN state based on this new input
+        h, _ = rnn_step_forward(words_vect, h, Wx, Wh, b)
+        # Convert RNN state to a scores vector to predict next words
+        scores, _ = affine_forward(h, W_vocab, b_vocab)
+        # For each image, the next word is the one with the highest score
+        words = np.argmax(scores, axis=1)
+        # Populate captions vector
+        captions[:,t] = words
+        # Increase counter
+        t += 1
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
