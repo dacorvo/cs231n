@@ -144,7 +144,18 @@ class CaptioningRNN(object):
     # Use a temporal affine transforma to get scores for next words from feats
     scores, scores_cache = temporal_affine_forward(feats, W_vocab, b_vocab)
     # Use temporal softmax to evaluate global loss
-    loss, _ = temporal_softmax_loss(scores, captions_out, mask)
+    loss, dx = temporal_softmax_loss(scores, captions_out, mask)
+
+    # Backpropagate loss gradient to scores
+    dscores, grads['W_vocab'], grads['b_vocab'] = \
+            temporal_affine_backward(dx, scores_cache)
+    # Backpropagate scores gradients to RNN features and initial state
+    dfeats, dh0, grads['Wx'], grads['Wh'], grads['b'] = \
+            rnn_backward(dscores, rnn_cache)
+    # Backpropagate features gradients to word embeddings
+    grads['W_embed'] = word_embedding_backward(dfeats, words_cache)
+    # Backpropagate RNN initial state gradient to image feature classifier
+    _ , grads['W_proj'], grads['b_proj'] = affine_backward(dh0, h0_cache)
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
