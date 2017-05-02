@@ -140,7 +140,10 @@ class CaptioningRNN(object):
     # Transform sequence of input word index into sequence of word vectors
     words, words_cache = word_embedding_forward(captions_in, W_embed)
     # Run recurrent neural net to evaluate next word features at each timestep
-    feats, rnn_cache = rnn_forward(words, h0, Wx, Wh, b)
+    if self.cell_type == "lstm":
+        feats, rnn_cache = lstm_forward(words, h0, Wx, Wh, b)
+    else:
+        feats, rnn_cache = rnn_forward(words, h0, Wx, Wh, b)
     # Use a temporal affine transforma to get scores for next words from feats
     scores, scores_cache = temporal_affine_forward(feats, W_vocab, b_vocab)
     # Use temporal softmax to evaluate global loss
@@ -150,8 +153,12 @@ class CaptioningRNN(object):
     dscores, grads['W_vocab'], grads['b_vocab'] = \
             temporal_affine_backward(dx, scores_cache)
     # Backpropagate scores gradients to RNN features and initial state
-    dfeats, dh0, grads['Wx'], grads['Wh'], grads['b'] = \
-            rnn_backward(dscores, rnn_cache)
+    if self.cell_type == "lstm":
+        dfeats, dh0, grads['Wx'], grads['Wh'], grads['b'] = \
+                                            lstm_backward(dscores, rnn_cache)
+    else:
+        dfeats, dh0, grads['Wx'], grads['Wh'], grads['b'] = \
+                                            rnn_backward(dscores, rnn_cache)
     # Backpropagate features gradients to word embeddings
     grads['W_embed'] = word_embedding_backward(dfeats, words_cache)
     # Backpropagate RNN initial state gradient to image feature classifier
