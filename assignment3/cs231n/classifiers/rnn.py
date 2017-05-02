@@ -226,6 +226,9 @@ class CaptioningRNN(object):
     ###########################################################################
     # Evaluate RNN initial state
     h, _ = affine_forward(features, W_proj, b_proj)
+    # For LSTM, set initial cell state to zero
+    if self.cell_type == "lstm":
+        c = np.zeros_like(h)
     # For each image, initial word is the <START> token
     words = np.ones((N), dtype=np.int32) * self._start
     # Set counter to zero
@@ -235,7 +238,10 @@ class CaptioningRNN(object):
         # Convert current words (one per image) to a vector
         words_vect, _ = word_embedding_forward(words, W_embed)
         # Evaluate RNN state based on this new input
-        h, _ = rnn_step_forward(words_vect, h, Wx, Wh, b)
+        if self.cell_type == "lstm":
+            h, c, _ = lstm_step_forward(words_vect, h, c, Wx, Wh, b)
+        else:
+            h, _ = rnn_step_forward(words_vect, h, Wx, Wh, b)
         # Convert RNN state to a scores vector to predict next words
         scores, _ = affine_forward(h, W_vocab, b_vocab)
         # For each image, the next word is the one with the highest score
