@@ -37,7 +37,7 @@ class CaptioningRNN(object):
     self.cell_type = cell_type
     self.dtype = dtype
     self.word_to_idx = word_to_idx
-    self.idx_to_word = {i: w for w, i in word_to_idx.iteritems()}
+    self.idx_to_word = {i: w for w, i in word_to_idx.items()}
     self.params = {}
     
     vocab_size = len(word_to_idx)
@@ -69,7 +69,7 @@ class CaptioningRNN(object):
     self.params['b_vocab'] = np.zeros(vocab_size)
       
     # Cast parameters to correct dtype
-    for k, v in self.params.iteritems():
+    for k, v in self.params.items():
       self.params[k] = v.astype(self.dtype)
 
 
@@ -135,7 +135,16 @@ class CaptioningRNN(object):
     # defined above to store loss and gradients; grads[k] should give the      #
     # gradients for self.params[k].                                            #
     ############################################################################
-    pass
+    # Evaluate initial hidden state from image features
+    h0, h0_cache = affine_forward(features, W_proj, b_proj)
+    # Transform sequence of input word index into sequence of word vectors
+    words, words_cache = word_embedding_forward(captions_in, W_embed)
+    # Run recurrent neural net to evaluate next word features at each timestep
+    feats, rnn_cache = rnn_forward(words, h0, Wx, Wh, b)
+    # Use a temporal affine transforma to get scores for next words from feats
+    scores, scores_cache = temporal_affine_forward(feats, W_vocab, b_vocab)
+    # Use temporal softmax to evaluate global loss
+    loss, _ = temporal_softmax_loss(scores, captions_out, mask)
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
