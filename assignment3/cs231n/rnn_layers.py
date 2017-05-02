@@ -294,6 +294,8 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
   # Evaluate next cell and hidden states
   next_c = f * prev_c + i * g
   next_h = o * np.tanh(next_c)
+  # Store values required for bqckward pass in cache
+  cache = ( x, prev_h, prev_c, Wx, Wh, i, f, o, g, next_c )
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
@@ -325,7 +327,43 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
   # HINT: For sigmoid and tanh you can compute local derivatives in terms of  #
   # the output value from the nonlinearity.                                   #
   #############################################################################
-  pass
+  # Get back values from cache
+  x, prev_h, prev_c, Wx, Wh, i, f, o, g, next_c = cache
+  # Get dimensions
+  N, H = prev_h.shape
+
+  # WARNING: as seen in the forward pass, next_h is actually a function of
+  # next_c, which means that we need to backpropagate a part of dnext_h to
+  # dnext_c.
+  dnext_c += (1 - np.square(np.tanh(next_c))) * o * dnext_h
+  
+  # Now we can propagate dnext_h and dnext_c to gates functions
+  di = g * dnext_c
+  df = prev_c * dnext_c
+  dg = i * dnext_c
+  do = np.tanh(next_c) * dnext_h
+  # We also evaluate dprev_c
+  dprev_c = f * dnext_c
+  
+  # Now, propagate gate gradients to activation vectors
+  dAi = (i - np.square(i)) * di
+  dAf = (f - np.square(f)) * df
+  dAo = (o - np.square(o)) * do
+  dAg = (1 - np.square(g)) * dg
+
+  # Reconstruct activation matrix gradient
+  dA = np.zeros((N, 4*H))
+  dA[:,:H] = dAi
+  dA[:,H:2*H] = dAf
+  dA[:,2*H:3*H] = dAo
+  dA[:,3*H:] = dAg
+
+  # Finally propagate activation gradients to input and params gradients
+  dx = np.dot(dA, Wx.T)
+  dWx = np.dot(x.T, dA)
+  dprev_h = np.dot(dA, Wh.T)
+  dWh = np.dot(prev_h.T, dA)
+  db = np.sum(dA, axis=0)
   ##############################################################################
   #                               END OF YOUR CODE                             #
   ##############################################################################
